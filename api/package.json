@@ -1,0 +1,24 @@
+{
+  "name": "backendopenprojectdashboard",
+  "version": "1.0.0",
+  "description": "The backend of the OpenProject dashboard",
+  "main": "index.js",
+  "scripts": {
+    "repl": "node -e \"let knex = require('./db/knex.js')\" --experimental-repl-await -i"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sharkahm/OpenProject-Dashboard.git"
+  },
+  "author": "Mirco Neuenschwander",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Sharkahm/OpenProject-Dashboard/issues"
+  },
+  "homepage": "https://github.com/Sharkahm/OpenProject-Dashboard#readme",
+  "dependencies": {
+    "express": "^4.17.1",
+    "knex": "^0.20.10",
+    "mysql2": "^2.1.0"
+  }
+}

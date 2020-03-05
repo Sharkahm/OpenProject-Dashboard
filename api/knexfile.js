@@ -8,7 +8,7 @@ module.exports = {
       host: 'localhost',
       user: 'root',
       password: 'gibbiX12345',
-      database: 'openproject'
+      database: 'openprojectdb'
     }
   },
 };

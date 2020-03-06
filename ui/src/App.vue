@@ -94,20 +94,43 @@
                 <div v-if="window == 'Studenten'">
                   <!--Students-->
                   <center>
-                    <v-btn>ICT</v-btn>
-                    <v-btn>1.LJ</v-btn>
-                    <v-btn>2.LJ</v-btn>
-                    <v-btn>3.LJ</v-btn>
+                    <v-btn v-on:click="getDBStudents(4)">ICT</v-btn>
+                    <v-btn v-on:click="getDBStudents(3)">1.LJ</v-btn>
+                    <v-btn v-on:click="getDBStudents(2)">2.LJ</v-btn>
+                    <v-btn v-on:click="getDBStudents(1)">3.LJ</v-btn>
                   </center>
-                  <v-list>
-                    <v-list-item-group>
-                      <v-list-item>
-                        <v-list-item-content>
-                          <v-list-item-title></v-list-item-title>
-                        </v-list-item-content>
-                      </v-list-item>
-                    </v-list-item-group>
-                  </v-list>
+                  <br />
+                  <div v-if="this.class!=null">
+                    <v-simple-table dense height="500px" fixed-header>
+                      <thead>
+                        <tr>
+                          <th width="50px"></th>
+                          <th width="10%">Vorname</th>
+                          <th width="90%">Nachname</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="(student, i) in this.studentsStorage" :key="i">
+                          <td>
+                            <v-btn v-on:click="deleteDBStudents(student)">X</v-btn>
+                          </td>
+                          <td>{{ student.prename }}</td>
+                          <td>{{ student.surname }}</td>
+                        </tr>
+                      </tbody>
+                    </v-simple-table>
+                    <v-row justify="center">
+                      <v-col class="d-flex" cols="12" sm="2">
+                        <v-text-field v-model="studentAdd.prename" label="Vorname"></v-text-field>
+                      </v-col>
+                      <v-col class="d-flex" cols="12" sm="2">
+                        <v-text-field v-model="studentAdd.surname" label="Nachname"></v-text-field>
+                      </v-col>
+                      <v-col class="d-flex" cols="12" sm="2">
+                        <v-btn dense v-on:click="postDBStudents()">Hinzufügen</v-btn>
+                      </v-col>
+                    </v-row>
+                  </div>
                 </div>
                 <div v-if="window == 'Stundenpläne'">
                   <!--Timetable-->
@@ -118,21 +141,54 @@
                     <v-btn v-on:click="getDBTimeTable(1)">3.LJ</v-btn>
                   </center>
                   <v-calendar
-                    dense
-                    ref="calendar"
+                    v-on:click:event="deleteDBTimeTable($event)"
+                    height="200"
                     :first-interval="7"
                     :interval-minutes="60"
                     :interval-count="11"
+                    ref="calendar"
                     :value="dateCode"
-                    :events="adjustedTimeTableStorage"
+                    :events="timeTableStorage"
                     color="primary"
                     type="week"
+                    dense
                     :key="componentKey"
-                  ></v-calendar>
-                  <v-text-field></v-text-field>
-                  <v-text-field></v-text-field>
-                  <v-select></v-select>
-                  <v-btn></v-btn>
+                  />
+                  <center v-if="this.class!= null">
+                    Bitte beachten Sie, dass das Klicken eines Stundenplaneintrags zur Löschung des Stundenplaneintrags führt!
+                    <v-row justify="center">
+                      <v-col class="d-flex" cols="12" sm="2">
+                        <v-select dense label="Tag" v-model="timeTableAdd.day" :items="dayList"></v-select>
+                      </v-col>
+                      <v-col class="d-flex" cols="12" sm="2">
+                        <v-text-field
+                          dense
+                          label="Startzeit"
+                          v-model="timeTableAdd.start"
+                          placeholder="07:40:00"
+                        ></v-text-field>
+                      </v-col>
+                      <v-col class="d-flex" cols="12" sm="2">
+                        <v-text-field
+                          dense
+                          label="Endzeit"
+                          v-model="timeTableAdd.end"
+                          placeholder=" 11:50:00"
+                        ></v-text-field>
+                      </v-col>
+                      <v-col class="d-flex" cols="12" sm="2">
+                        <v-select
+                          dense
+                          label="Fach"
+                          v-model="timeTableAdd.subject"
+                          :items="this.subjectsStorage"
+                        ></v-select>
+                      </v-col>
+                      <v-col class="d-flex" cols="12" sm="2">
+                        <v-btn dense v-on:click="postDBTimeTable()">Hinzufügen</v-btn>
+                      </v-col>
+                    </v-row>
+                  </center>
                 </div>
                 <div v-if="window == 'Einstellungen'">
                   <!--Settings-->
@@ -271,6 +327,18 @@ export default {
         { icon: "mdi-settings", text: "Einstellungen" }
       ],
 
+      timeTableAdd: {
+        day: null,
+        start: null,
+        end: null,
+        subject: null
+      },
+
+      studentAdd: {
+        surname: null,
+        prename: null
+      },
+
       //Storages
       subjectsStorage: [],
       timeTableStorage: [],
@@ -278,7 +346,6 @@ export default {
       projectsStorage: [],
       displayStorage: [],
 
-      adjustedTimeTableStorage: [],
       //OpenProject Login
       ip: "172.30.254.79",
       username: "",
@@ -296,8 +363,8 @@ export default {
       ],
 
       //Interface data
-      window: "Stundenpläne",
-      class: "",
+      window: "Studenten",
+      class: null,
       extendedDisplay: false,
       date: "",
       dateCode: "",
@@ -311,9 +378,10 @@ export default {
       dateIntervalID: 0
     };
   },
-  created() {
-    this.createTime();
-    this.createDate();
+  async created() {
+    await this.createTime();
+    await this.createDate();
+    await this.getDBSubjects();
   },
   methods: {
     //Fill the time variable with the current time
@@ -342,25 +410,19 @@ export default {
     //Fill the date variable with the current date
     createDate() {
       clearInterval(this.dateIntervalID);
-      const today = new Date();
-      var day, month;
-      if (today.getMonth() < 10) {
-        month = "0" + (today.getMonth() + 1);
+      const tempToday = new Date();
+      var tempDay, tempMonth;
+      if (tempToday.getMonth() < 10) {
+        tempMonth = "0" + (tempToday.getMonth() + 1);
       } else {
-        month = today.getMonth() + 1;
+        tempMonth = tempToday.getMonth() + 1;
       }
-      if (today.getDate() < 10) {
-        day = "0" + (today.getDay() + 1);
+      if (tempToday.getDate() < 10) {
+        tempDay = "0" + (tempToday.getDay() + 1);
       }
 
-      this.date = day + "." + month + "." + today.getFullYear(); //Display date
-      this.dateCode = (
-        today.getFullYear() +
-        "-" +
-        month +
-        "-" +
-        day
-      ).toString(); //code date
+      this.date = tempDay + "." + tempMonth + "." + tempToday.getFullYear(); //Display date
+      this.dateCode = tempToday.getFullYear() + "-" + tempMonth + "-" + tempDay; //code date
       this.timeIntervalID = setInterval(
         function() {
           this.createTime();
@@ -369,7 +431,14 @@ export default {
       );
     },
     //Gets subjects from MySQL DB
-    getDBSubjects() {},
+    async getDBSubjects() {
+      var tempSubjectList = [];
+      let tempSubject = await axios.get(`/api/subjects`);
+      for (var i = 0; i < tempSubject.data.length; i++) {
+        tempSubjectList.push(tempSubject.data[i].subject);
+      }
+      this.subjectsStorage = tempSubjectList;
+    },
     //Gets timetable from MySQL DB
     async getDBTimeTable(tempClass) {
       let tempTimeTableStorage = await axios.get(
@@ -385,30 +454,14 @@ export default {
         tempEntry;
       for (var i = 0; i < this.timeTableStorage.length; i++) {
         var tempName, tempStart, tempEnd;
-        var tempCurrentDay = new Date();
-        var tempDayDifference =
-          this.timeTableStorage[i].day - tempCurrentDay.getDay();
-
+        var tempOtherDay = this.calculateOtherDate(i);
         tempName = this.timeTableStorage[i].subject;
-
-        tempCurrentDay.setDate(tempCurrentDay.getDate() + tempDayDifference);
         tempStart =
-          tempCurrentDay.getFullYear() +
-          "-" +
-          tempCurrentDay.getMonth() +
-          "-" +
-          tempCurrentDay.getDay() +
+          tempOtherDay +
           " " +
           this.timeTableStorage[i].start.toString().slice(0, -3);
-
-        tempCurrentDay = new Date();
-        tempCurrentDay.setDate(tempCurrentDay.getDate() + tempDayDifference);
         tempEnd =
-          tempCurrentDay.getFullYear() +
-          "-" +
-          tempCurrentDay.getMonth() +
-          "-" +
-          tempCurrentDay.getDay() +
+          tempOtherDay +
           " " +
           this.timeTableStorage[i].end.toString().slice(0, -3);
 
@@ -421,19 +474,95 @@ export default {
         };
         tempAdjustedTimeTable.push(tempEntry);
       }
-      this.adjustedTimeTableStorage = tempAdjustedTimeTable;
+      this.timeTableStorage = tempAdjustedTimeTable;
       this.componentKey += 1;
     },
+    calculateOtherDate(i) {
+      var tempCurrentDay = new Date();
+      var tempDayDifference =
+        this.timeTableStorage[i].day - tempCurrentDay.getDay();
+      tempCurrentDay.setDate(tempCurrentDay.getDate() + tempDayDifference);
+      var tempDay, tempMonth;
+      if (tempCurrentDay.getMonth() < 10) {
+        tempMonth = "0" + (tempCurrentDay.getMonth() + 1);
+      } else {
+        tempMonth = tempCurrentDay.getMonth() + 1;
+      }
+      if (tempCurrentDay.getDate() < 10) {
+        tempDay = "0" + (tempCurrentDay.getDay() + 1);
+      }
+      var tempOtherDay =
+        tempCurrentDay.getFullYear() + "-" + tempMonth + "-" + tempDay;
+      return tempOtherDay;
+    },
     //Removes one entry of the timetable
-    deleteDBTimeTable() {},
+    async deleteDBTimeTable(tempTimeTableEntry) {
+      var tempEvent = tempTimeTableEntry;
+      await axios.delete(`/api/timetables/${tempEvent.event.id}`);
+      await this.getDBTimeTable(this.class);
+    },
     //Posts an entry into the timetable
-    postDBTimeTable() {},
+    async postDBTimeTable() {
+      if (
+        this.timeTableAdd.day != null &&
+        this.timeTableAdd.start != null &&
+        this.timeTableAdd.end != null &&
+        this.timeTableAdd.subject != null
+      ) {
+        let tempPostTimeTable = await this.adjustPostTimeTable();
+        await axios.post("/api/timetables", tempPostTimeTable);
+        await this.getDBTimeTable(this.class);
+      }
+    },
+    adjustPostTimeTable() {
+      let tempPostTimeTable = {
+        day: null,
+        start: this.timeTableAdd.start,
+        end: this.timeTableAdd.end,
+        classes_id: this.class,
+        subjects_id: null
+      };
+      for (var i = 0; i < this.dayList.length; i++) {
+        if (this.dayList[i] == this.timeTableAdd.day) {
+          tempPostTimeTable.day = i;
+        }
+      }
+      for (var j = 0; j < this.subjectsStorage.length; j++) {
+        if (this.subjectsStorage[j] == this.timeTableAdd.subject) {
+          tempPostTimeTable.subjects_id = j + 1;
+        }
+      }
+      this.timeTableAdd = {
+        day: null,
+        start: null,
+        end: null,
+        subject: null
+      };
+      return tempPostTimeTable;
+    },
     //Gets students from MySQL DB
-    getDBStudents() {},
+    async getDBStudents(tempClass) {
+      let tempStudentsStorage = await axios.get(`/api/students/${tempClass}`);
+      this.studentsStorage = tempStudentsStorage.data;
+      this.class = tempClass;
+    },
     //Removes one student from the classlist
-    deleteDBStudents() {},
+    async deleteDBStudents(tempStudent) {
+      await axios.delete(`/api/students/${tempStudent.idstudents}`);
+      await this.getDBStudents(this.class);
+    },
     //Add a new student to the classlist
-    postDBStudents() {},
+    async postDBStudents() {
+      if (this.studentAdd.surname != null && this.studentAdd.prename != null) {
+        let tempPostStudents = {
+          surname: this.studentAdd.surname,
+          prename: this.studentAdd.prename,
+          classes_id: this.class
+        };
+        await axios.post("/api/students", tempPostStudents);
+        await this.getDBStudents(this.class);
+      }
+    },
     //Gets projects from OpenProject API
     getOPProjects() {},
     //Creates the display from the project storage

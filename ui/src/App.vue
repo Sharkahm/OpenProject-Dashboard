@@ -348,8 +348,13 @@ export default {
 
       //OpenProject Login
       ip: "172.30.254.79",
-      username: "",
-      password: "",
+      username: "apikey",
+      password: "c924b153e11ec721010f5d3a81a6cb304ff5d25ed0820a753539298b772aa803",
+
+      //OpenProjects Raw
+      projects: [],
+      memberships: [],
+      progress: [],
 
       //Days
       dayList: [
@@ -382,6 +387,7 @@ export default {
     await this.createTime();
     await this.createDate();
     await this.getDBSubjects();
+    await this.createProjectsStorage()
   },
   methods: {
     //Fill the time variable with the current time
@@ -477,6 +483,7 @@ export default {
       this.timeTableStorage = tempAdjustedTimeTable;
       this.componentKey += 1;
     },
+
     calculateOtherDate(i) {
       var tempCurrentDay = new Date();
       var tempDayDifference =
@@ -563,11 +570,129 @@ export default {
         await this.getDBStudents(this.class);
       }
     },
+
+    //--------------------------------------------------
+    //testing
+    async createProjectsStorage(){
+      await this.getOPProjects();
+      await this.getOPMemberships();
+      await this.adjustOPProjectProgress()
+      await this.adjustOPMemberships();
+      await this.adjustOPProjects();
+    },
+
     //Gets projects from OpenProject API
-    getOPProjects() {},
+    async getOPProjects() {
+      let tempGetOPProjects = await axios.get(
+        `http://${this.ip}/openproject/api/v3/projects/`,
+        {
+          auth: {
+            username: this.username,
+            password: this.password
+          }
+        }
+      );
+      this.projects = tempGetOPProjects.data._embedded.elements
+    },
+
+    //Gets memberships from OpenProject API
+    async getOPMemberships() {
+      let tempGetOPMemberships = await axios.get(
+        `http://${this.ip}/openproject/api/v3/memberships`,
+        {
+          auth: {
+            username: this.username,
+            password: this.password
+          }
+        }
+      );
+      this.memberships = tempGetOPMemberships.data._embedded.elements
+    },
+
+    //Gets the progress of the project by ID (i)
+    async getOPProjectProgress(i) {
+      let tempgetOPProjectProgress = await axios.get(
+        `http://${this.ip}/openproject/api/v3/projects/${i}/queries/default?filters=[{"status":{"operator":"*","values":[]}}]`,
+        {
+          auth: {
+            username: this.username,
+            password: this.password
+          }
+        }
+      );
+      return tempgetOPProjectProgress.data._embedded;
+    },
+
+    //adjusting Projects import from OpenProject for the projects storage
+    adjustOPProjects(){
+      var tempProjectsStorage = []
+      for(var i = 0; i < this.projects.length; i++){
+        var tempProjectObject = {
+          project: this.projects[i].name,
+          status: this.projects[i].status,
+          members: [],
+          progress: 0
+        }
+        for(var j = 0; j < this.memberships.length; j++){
+          if(this.memberships[j].project==tempProjectObject.project){
+            tempProjectObject.members.push(this.memberships[j].member)
+          }
+        }
+        for(var k = 0; k < this.progress.length; k++){
+          if(this.progress[k].project==tempProjectObject.project){
+            tempProjectObject.progress = this.progress[k].progress
+          }
+        }
+        tempProjectsStorage.push(tempProjectObject)
+      }
+      this.projectsStorage = tempProjectsStorage
+    },
+
+    //adjusting Memberships import from OpenProject for the project storage
+    adjustOPMemberships(){
+      var tempMemberships = []
+      for(var i= 0; i < this.memberships.length; i++){
+        var tempMembershipsObject = {
+          member: this.memberships[i]._links.self.title,
+          project: this.memberships[i]._links.project.title
+        }
+        tempMemberships.push(tempMembershipsObject)
+      }
+      this.memberships = tempMemberships
+    },
+
+    //adjusting project progress import from OpenProject for the project storage
+    async adjustOPProjectProgress(){
+      var tempProgress = []
+      for(var i = 1; i <= this.projects.length; i++){
+        let tempProgressObjectGetter = await this.getOPProjectProgress(i)
+        var tempProgressSum = 0
+        if(tempProgressObjectGetter.results.total > tempProgressObjectGetter.results.count){
+          let tempDifference = tempProgressObjectGetter.results.total - tempProgressObjectGetter.results.count
+          tempProgressSum += (tempDifference * 100) 
+        }
+        for (var j = 0; j < tempProgressObjectGetter.results.count; j++){
+          tempProgressSum += tempProgressObjectGetter.results._embedded.elements[j].percentageDone
+        }
+        tempProgressSum = tempProgressSum / tempProgressObjectGetter.results.total
+        if(isNaN(tempProgressSum)){
+          tempProgressSum = 0;
+        }
+        let tempProgressObject = {
+          project: tempProgressObjectGetter.project.name,
+          progress: tempProgressSum
+        }
+        tempProgress.push(tempProgressObject)
+      }
+      this.progress = tempProgress
+    },
+
     //Creates the display from the project storage
-    createDisplay() {}
+  createDisplay() {}
+  
+  
   },
+
   beforeDestroy() {
     clearInterval(this.dataUpdaterIntervalID);
     clearInterval(this.timeUpdaterIntervalID);

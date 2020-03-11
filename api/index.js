@@ -39,9 +39,8 @@ app.get('/api/classes', async (req, res) => {
     let results = await knex('classes')
         .select('*')
     res.json(results)
-    console.log("get rooms")
+    console.log("get classes")
 })
-
 
 //Rooms
 app.get('/api/rooms', async (req, res) => {
@@ -70,6 +69,17 @@ app.get('/api/timetables/:class', async (req, res) => {
     console.log("get timetable by class")
 })
 
+app.get('/api/timetables/day/:day', async (req, res) => {
+    let results = await knex('timetables')
+        .where('day', req.params.day)
+        .join('subjects', { 'subjects_id': 'idsubjects' })
+        .join('classes', { 'classes_id': 'idclasses' })
+        .orderBy('day', 'asc')
+        .select('day', 'start', 'end', 'subject', 'classes_id', 'rooms_id')
+    res.json(results)
+    console.log("get timetable - day" + JSON.stringify(req.body))
+})
+
 app.delete('/api/timetables/:id', async (req, res) => {
     let results = await knex('timetables')
         .where('idtimetable', req.params.id)
@@ -91,6 +101,12 @@ app.post('/api/timetables', async (req, res) => {
     console.log("post entry into timetable")
 })
 //Login
+app.get('/api/login', async (req, res) => {
+    let results = await knex('login')
+        .select('*')
+    res.json(results)
+    console.log("get login")
+})
 
 
 app.listen(3000, () => console.log("Listening on port 3000"))

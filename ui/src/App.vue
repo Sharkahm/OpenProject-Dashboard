@@ -22,7 +22,7 @@
               </v-list-item-content>
             </template>
           </v-list-group>
-          <v-list-item v-else :key="item.text" link>
+          <v-list-item v-else :key="item.text" link v-on:click="clickChangeWindow(item.text)">
             <v-list-item-action>
               <v-icon>{{ item.icon }}</v-icon>
             </v-list-item-action>
@@ -59,33 +59,48 @@
               <v-card-text>
                 <div v-if="window == 'Projekte'">
                   <!--Projects-->
-                  <v-slider step="1" :min="0"></v-slider>
+                  <v-slider
+                    v-model="displayNumber"
+                    step="1"
+                    ticks="always"
+                    :min="0"
+                    :max="maxDisplayNumber"
+                    @change="createDisplay()"
+                  ></v-slider>
                   <v-simple-table style="width: 100%">
                     <thead>
                       <tr>
-                        <th>Projekttitel</th>
-                        <th>Teilnehmer</th>
-                        <th>Status</th>
-                        <th>Fortschritt</th>
+                        <th style="font-size: 20px;">Projekttitel</th>
+                        <th style="font-size: 20px;">Teilnehmer</th>
+                        <th style="font-size: 20px;">Status</th>
+                        <th style="font-size: 20px;">Fortschritt</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr>
-                        <td>
+                      <tr v-for="(displayer, i) in displayStorage" :key="i">
+                        <td style="font-size: 35px">
                           <!--Project title-->
+                          {{ displayer.project }}
                         </td>
-                        <td>
+                        <td style="font-size: 20px; width: 50px">
                           <!--Project members-->
                           <ul>
-                            <li></li>
+                            <li v-for="(member, j) in displayer.members" v-text="member" :key="j"></li>
                           </ul>
                         </td>
-                        <td>
-                          <!--Project status-->
-                        </td>
+                        <td
+                          style="font-size: 20px; width: 20px"
+                          v-bind:class="{ greenBC: displayer.status=='on track', yellowBC: displayer.status=='at risk', redBC: displayer.status=='off track', whiteBC: displayer.status==null}"
+                        >{{ displayer.status }}</td>
                         <td>
                           <!--Project progress-->
-                          <v-progress-circular></v-progress-circular>
+                          <v-progress-circular
+                            color="primary"
+                            size="80"
+                            width="16"
+                            :rotate="-90"
+                            :value="displayer.progress"
+                          ></v-progress-circular>
                         </td>
                       </tr>
                     </tbody>
@@ -200,9 +215,13 @@
                 <div v-if="window == 'Login'">
                   <!--Login-->
                   <center>
-                    <v-text-field></v-text-field>
-                    <v-text-field></v-text-field>
-                    <v-btn>Login</v-btn>
+                    <v-text-field v-model="loginUsername"></v-text-field>
+                    <v-text-field v-model="loginPassword"></v-text-field>
+                    {{loginUsername}}
+                    <br />
+                    {{loginPassword}}
+                    <br />
+                    <v-btn v-on:click="logTeacherIn()">Login</v-btn>
                   </center>
                 </div>
               </v-card-text>
@@ -220,7 +239,7 @@
               <v-card-text>
                 <div v-if="window == 'Projekte'">
                   <!--Projects-->
-                  <v-slider step="1" :min="0"></v-slider>
+                  <v-slider></v-slider>
                   <v-simple-table style="width: 100%">
                     <thead>
                       <tr>
@@ -327,6 +346,13 @@ export default {
         { icon: "mdi-settings", text: "Einstellungen" }
       ],
 
+      rotation: [],
+      displayNumber: 0,
+      maxDisplayNumber: 6,
+
+      loginUsername: "",
+      loginPassword: "",
+
       timeTableAdd: {
         day: null,
         start: null,
@@ -349,9 +375,10 @@ export default {
       //OpenProject Login
       ip: "172.30.254.79",
       username: "apikey",
-      password: "c924b153e11ec721010f5d3a81a6cb304ff5d25ed0820a753539298b772aa803",
+      password:
+        "c924b153e11ec721010f5d3a81a6cb304ff5d25ed0820a753539298b772aa803",
 
-      //OpenProjects Raw
+      //Raw Data
       projects: [],
       memberships: [],
       progress: [],
@@ -368,12 +395,13 @@ export default {
       ],
 
       //Interface data
-      window: "Studenten",
+      window: "",
       class: null,
       extendedDisplay: false,
       date: "",
       dateCode: "",
       time: "",
+      room: null,
 
       //componentKey forces Vue to update the DOM of the tagged element
       componentKey: 0,
@@ -387,7 +415,6 @@ export default {
     await this.createTime();
     await this.createDate();
     await this.getDBSubjects();
-    await this.createProjectsStorage()
   },
   methods: {
     //Fill the time variable with the current time
@@ -424,7 +451,9 @@ export default {
         tempMonth = tempToday.getMonth() + 1;
       }
       if (tempToday.getDate() < 10) {
-        tempDay = "0" + (tempToday.getDay() + 1);
+        tempDay = "0" + tempToday.getDay();
+      } else {
+        tempDay = tempToday.getDate();
       }
 
       this.date = tempDay + "." + tempMonth + "." + tempToday.getFullYear(); //Display date
@@ -436,6 +465,80 @@ export default {
         100000
       );
     },
+
+    //changes window on click
+    clickChangeWindow(selection) {
+      switch (selection) {
+        case "LOA 903":
+        case "LOA 002":
+        case "LOH":
+          this.createProjectsWindow(selection);
+          break;
+        case "Einstellungen":
+          this.window = "Login";
+          break;
+      }
+    },
+
+    //Defining room by asigning a number
+    createProjectsWindow(selection) {
+      switch (selection) {
+        case "LOA 903":
+          this.room = 1;
+          break;
+        case "LOA 002":
+          this.room = 2;
+          break;
+        case "LOH":
+          this.room = 3;
+          break;
+      }
+      this.getDBTimeTableDay();
+      this.createProjects();
+      this.window = "Projekte";
+    },
+
+    //gets the time table of the day
+    async getDBTimeTableDay() {
+      var tempDay = new Date();
+      let tempTimeTableDayGetter = await axios.get(
+        `/api/timetables/day/${tempDay.getDay()}`
+      );
+      tempTimeTableDayGetter = tempTimeTableDayGetter.data;
+      this.adjustDBTimeTableDay(tempTimeTableDayGetter);
+    },
+
+    //filters and adjust the timetable of the day
+    adjustDBTimeTableDay(tempTimeTableDayGetter) {
+      let tempTimeTableDay = [];
+      for (var i = 0; i < tempTimeTableDayGetter.length; i++) {
+        if (
+          tempTimeTableDayGetter[i].subject == "Praktischer Unterricht" &&
+          tempTimeTableDayGetter[i].rooms_id == this.room
+        ) {
+          tempTimeTableDay.push({
+            start: tempTimeTableDayGetter[i].start,
+            end: tempTimeTableDayGetter[i].end,
+            class: tempTimeTableDayGetter[i].classes_id,
+            room: tempTimeTableDayGetter[i].rooms_id
+          });
+        }
+      }
+      this.compareDBTimeTableDay(tempTimeTableDay);
+    },
+
+    //Defines a class when the class has workshop lessons
+    compareDBTimeTableDay(tempTimeTableDay) {
+      let currentHour = this.time.slice(0, 2);
+      for (var i = 0; i < tempTimeTableDay.length; i++) {
+        let tempStartWorkshopHour = tempTimeTableDay[i].start.slice(0, 2);
+        let tempEndWorkshopHour = tempTimeTableDay[i].end.slice(0, 2);
+        if (tempStartWorkshopHour <= currentHour <= tempEndWorkshopHour) {
+          this.class = tempTimeTableDay[0].class;
+        }
+      }
+    },
+
     //Gets subjects from MySQL DB
     async getDBSubjects() {
       var tempSubjectList = [];
@@ -445,6 +548,7 @@ export default {
       }
       this.subjectsStorage = tempSubjectList;
     },
+
     //Gets timetable from MySQL DB
     async getDBTimeTable(tempClass) {
       let tempTimeTableStorage = await axios.get(
@@ -573,12 +677,13 @@ export default {
 
     //--------------------------------------------------
     //testing
-    async createProjectsStorage(){
+    async createProjects() {
       await this.getOPProjects();
       await this.getOPMemberships();
-      await this.adjustOPProjectProgress()
+      await this.adjustOPProjectProgress();
       await this.adjustOPMemberships();
       await this.adjustOPProjects();
+      await this.createDisplay();
     },
 
     //Gets projects from OpenProject API
@@ -592,7 +697,7 @@ export default {
           }
         }
       );
-      this.projects = tempGetOPProjects.data._embedded.elements
+      this.projects = tempGetOPProjects.data._embedded.elements;
     },
 
     //Gets memberships from OpenProject API
@@ -606,7 +711,7 @@ export default {
           }
         }
       );
-      this.memberships = tempGetOPMemberships.data._embedded.elements
+      this.memberships = tempGetOPMemberships.data._embedded.elements;
     },
 
     //Gets the progress of the project by ID (i)
@@ -624,73 +729,168 @@ export default {
     },
 
     //adjusting Projects import from OpenProject for the projects storage
-    adjustOPProjects(){
-      var tempProjectsStorage = []
-      for(var i = 0; i < this.projects.length; i++){
+    adjustOPProjects() {
+      var tempProjectsStorage = [];
+      for (var i = 0; i < this.projects.length; i++) {
         var tempProjectObject = {
           project: this.projects[i].name,
           status: this.projects[i].status,
           members: [],
           progress: 0
-        }
-        for(var j = 0; j < this.memberships.length; j++){
-          if(this.memberships[j].project==tempProjectObject.project){
-            tempProjectObject.members.push(this.memberships[j].member)
+        };
+        for (var j = 0; j < this.memberships.length; j++) {
+          if (this.memberships[j].project == tempProjectObject.project) {
+            tempProjectObject.members.push(this.memberships[j].member);
           }
         }
-        for(var k = 0; k < this.progress.length; k++){
-          if(this.progress[k].project==tempProjectObject.project){
-            tempProjectObject.progress = this.progress[k].progress
+        for (var k = 0; k < this.progress.length; k++) {
+          if (this.progress[k].project == tempProjectObject.project) {
+            tempProjectObject.progress = this.progress[k].progress;
           }
         }
-        tempProjectsStorage.push(tempProjectObject)
+        tempProjectsStorage.push(tempProjectObject);
       }
-      this.projectsStorage = tempProjectsStorage
+      this.projectsStorage = tempProjectsStorage;
     },
 
     //adjusting Memberships import from OpenProject for the project storage
-    adjustOPMemberships(){
-      var tempMemberships = []
-      for(var i= 0; i < this.memberships.length; i++){
+    adjustOPMemberships() {
+      var tempMemberships = [];
+      for (var i = 0; i < this.memberships.length; i++) {
         var tempMembershipsObject = {
           member: this.memberships[i]._links.self.title,
           project: this.memberships[i]._links.project.title
-        }
-        tempMemberships.push(tempMembershipsObject)
+        };
+        tempMemberships.push(tempMembershipsObject);
       }
-      this.memberships = tempMemberships
+      this.memberships = tempMemberships;
     },
 
     //adjusting project progress import from OpenProject for the project storage
-    async adjustOPProjectProgress(){
-      var tempProgress = []
-      for(var i = 1; i <= this.projects.length; i++){
-        let tempProgressObjectGetter = await this.getOPProjectProgress(i)
-        var tempProgressSum = 0
-        if(tempProgressObjectGetter.results.total > tempProgressObjectGetter.results.count){
-          let tempDifference = tempProgressObjectGetter.results.total - tempProgressObjectGetter.results.count
-          tempProgressSum += (tempDifference * 100) 
+    async adjustOPProjectProgress() {
+      var tempProgress = [];
+      for (var i = 1; i <= this.projects.length; i++) {
+        let tempProgressObjectGetter = await this.getOPProjectProgress(i);
+        var tempProgressSum = 0;
+        if (
+          tempProgressObjectGetter.results.total >
+          tempProgressObjectGetter.results.count
+        ) {
+          let tempDifference =
+            tempProgressObjectGetter.results.total -
+            tempProgressObjectGetter.results.count;
+          tempProgressSum += tempDifference * 100;
         }
-        for (var j = 0; j < tempProgressObjectGetter.results.count; j++){
-          tempProgressSum += tempProgressObjectGetter.results._embedded.elements[j].percentageDone
+        for (var j = 0; j < tempProgressObjectGetter.results.count; j++) {
+          tempProgressSum +=
+            tempProgressObjectGetter.results._embedded.elements[j]
+              .percentageDone;
         }
-        tempProgressSum = tempProgressSum / tempProgressObjectGetter.results.total
-        if(isNaN(tempProgressSum)){
+        tempProgressSum =
+          tempProgressSum / tempProgressObjectGetter.results.total;
+        if (isNaN(tempProgressSum)) {
           tempProgressSum = 0;
         }
         let tempProgressObject = {
           project: tempProgressObjectGetter.project.name,
           progress: tempProgressSum
-        }
-        tempProgress.push(tempProgressObject)
+        };
+        tempProgress.push(tempProgressObject);
       }
-      this.progress = tempProgress
+      this.progress = tempProgress;
     },
 
     //Creates the display from the project storage
-  createDisplay() {}
-  
-  
+    createDisplay() {
+      if (this.class != null) {
+        this.getDBStudents(this.class);
+        var tempProjectsInClass = [];
+        for (var i = 0; i < this.projectsStorage.length; i++) {
+          var tempKeep = this.compareMembersToClass(this.projectsStorage[i]);
+          if (tempKeep) {
+            tempProjectsInClass.push(this.projectsStorage[i]);
+          }
+        }
+
+        if (tempProjectsInClass.length < 6) {
+          this.maxDisplayNumber = tempProjectsInClass.length;
+        } else {
+          this.maxDisplayNumber = 6;
+        }
+
+        if (this.rotation.length != tempProjectsInClass.length) {
+          this.createRotationArray(tempProjectsInClass.length);
+        }
+        var tempDisplayStorage = [];
+        for (var j = 0; j < this.displayNumber; j++) {
+          tempDisplayStorage.push(tempProjectsInClass[this.rotation[j]]);
+        }
+
+        this.displayStorage = tempDisplayStorage;
+        var tempRotation = this.rotation[0];
+        this.rotation.shift();
+        this.rotation.push(tempRotation);
+      }
+    },
+
+    compareMembersToClass(currentProject) {
+      var tempKeep = false;
+      for (var i = 0; i < this.studentsStorage.length; i++) {
+        var tempStudentName =
+          this.studentsStorage[i].prename +
+          " " +
+          this.studentsStorage[i].surname;
+        for (var j = 0; j < currentProject.members.length; j++) {
+          if (tempStudentName == currentProject.members[j]) {
+            tempKeep = true;
+            return tempKeep;
+          }
+        }
+      }
+      return tempKeep;
+    },
+
+    createRotationArray(length) {
+      this.rotation = [];
+      for (var i = 0; i < length; i++) {
+        this.rotation.push(i);
+      }
+    },
+    logTeacherIn() {
+      this.hashInput();
+    },
+
+    hashInput() {
+      let tempUsername = this.hashString(this.loginUsername);
+      let tempPassword = this.hashString(this.loginPassword);
+      let access = this.compareDBLogin(tempUsername, tempPassword);
+      if (access) {
+        this.window = "Einstellungen";
+      }
+    },
+
+    hashString(str) {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        hash += Math.pow(str.charCodeAt(i) * 31, str.length - i);
+        hash = hash & hash; // Convert to 32bit integer
+      }
+      return hash;
+    },
+
+    async compareDBLogin(tempUsername, tempPassword) {
+      let tempLoginGetter = await axios.get(`/api/login`);
+      tempLoginGetter = tempLoginGetter.data;
+      for (var i = 0; i < tempLoginGetter.length; i++) {
+        if (
+          tempLoginGetter[i].user == tempUsername &&
+          tempLoginGetter[i].password == tempPassword
+        ) {
+          return true;
+        }
+      }
+      return false;
+    }
   },
 
   beforeDestroy() {
@@ -699,3 +899,20 @@ export default {
   }
 };
 </script>
+<style>
+ul {
+  list-style: none;
+}
+.whiteBC {
+  background-color: white;
+}
+.redBC {
+  background-color: rgb(255, 125, 125);
+}
+.yellowBC {
+  background-color: yellow;
+}
+.greenBC {
+  background-color: rgb(0, 255, 0);
+}
+</style>

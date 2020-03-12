@@ -6,7 +6,7 @@ module.exports = {
     client: 'mysql2',
     connection: {
       host: 'localhost',
-      user: 'root',
+      user: 'openprojectuser',
       password: 'gibbiX12345',
       database: 'openprojectdb'
     }

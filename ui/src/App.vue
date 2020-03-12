@@ -45,7 +45,7 @@
     </v-app-bar>
 
     <!--window or windows in the middle-->
-    <v-content>
+    <v-content v-if="window!=null">
       <v-container class="fill-height" fluid>
         <v-row align="center" justify="center">
           <!--first window-->
@@ -59,6 +59,12 @@
               <v-card-text>
                 <div v-if="window == 'Projekte'">
                   <!--Projects-->
+                  <v-row style="height: 32px; padding: 0; margin: 0">
+                    <v-checkbox v-model="checkboxProjectName" label="Projektname" dense />
+                    <v-checkbox v-model="checkboxProjectMembers" label="Projektmitglieder" dense />
+                    <v-checkbox v-model="checkboxProjectStatus" label="Projektstatus" dense />
+                    <v-checkbox v-model="checkboxProjectProgress" label="Projektfortschritt" dense />
+                  </v-row>
                   <v-slider
                     v-model="displayNumber"
                     step="1"
@@ -67,32 +73,39 @@
                     :max="maxDisplayNumber"
                     @change="createDisplay()"
                   ></v-slider>
-                  <v-simple-table style="width: 100%">
+                  <v-simple-table style="width: 100%" v-if="this.displayStorage.length != 0">
                     <thead>
                       <tr>
-                        <th style="font-size: 20px;">Projekttitel</th>
-                        <th style="font-size: 20px;">Teilnehmer</th>
-                        <th style="font-size: 20px;">Status</th>
-                        <th style="font-size: 20px;">Fortschritt</th>
+                        <th v-if="checkboxProjectName" style="font-size: 20px;">Projekttitel</th>
+                        <th
+                          v-if="checkboxProjectMembers"
+                          style="font-size: 20px; width: 100px"
+                        >Teilnehmer</th>
+                        <th v-if="checkboxProjectStatus" style="font-size: 20px; width: 20px">Status</th>
+                        <th
+                          v-if="checkboxProjectProgress"
+                          style="font-size: 20px; width: 20px"
+                        >Fortschritt</th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr v-for="(displayer, i) in displayStorage" :key="i">
-                        <td style="font-size: 35px">
+                        <td style="font-size: 35px" v-if="checkboxProjectName">
                           <!--Project title-->
                           {{ displayer.project }}
                         </td>
-                        <td style="font-size: 20px; width: 50px">
+                        <td style="font-size: 20px;" v-if="checkboxProjectMembers">
                           <!--Project members-->
                           <ul>
                             <li v-for="(member, j) in displayer.members" v-text="member" :key="j"></li>
                           </ul>
                         </td>
                         <td
-                          style="font-size: 20px; width: 20px"
+                          v-if="checkboxProjectStatus"
+                          style="font-size: 20px;"
                           v-bind:class="{ greenBC: displayer.status=='on track', yellowBC: displayer.status=='at risk', redBC: displayer.status=='off track', whiteBC: displayer.status==null}"
                         >{{ displayer.status }}</td>
-                        <td>
+                        <td v-if="checkboxProjectProgress">
                           <!--Project progress-->
                           <v-progress-circular
                             color="primary"
@@ -215,12 +228,8 @@
                 <div v-if="window == 'Login'">
                   <!--Login-->
                   <center>
-                    <v-text-field v-model="loginUsername"></v-text-field>
-                    <v-text-field v-model="loginPassword"></v-text-field>
-                    {{loginUsername}}
-                    <br />
-                    {{loginPassword}}
-                    <br />
+                    <v-text-field label="Benutzer" v-model="loginUsername"></v-text-field>
+                    <v-text-field label="Passwort" v-model="loginPassword" :type="'password'"></v-text-field>
                     <v-btn v-on:click="logTeacherIn()">Login</v-btn>
                   </center>
                 </div>
@@ -238,34 +247,63 @@
               </v-toolbar>
               <v-card-text>
                 <div v-if="window == 'Projekte'">
+                  <v-row style="height: 32px; padding: 0; margin: 0">
+                    <v-checkbox v-model="checkboxProjectName" label="Projektname" dense />
+                    <v-checkbox v-model="checkboxProjectMembers" label="Projektmitglieder" dense />
+                    <v-checkbox v-model="checkboxProjectStatus" label="Projektstatus" dense />
+                    <v-checkbox v-model="checkboxProjectProgress" label="Projektfortschritt" dense />
+                  </v-row>
                   <!--Projects-->
-                  <v-slider></v-slider>
-                  <v-simple-table style="width: 100%">
+                  <v-slider
+                    v-model="displayNumber"
+                    step="1"
+                    ticks="always"
+                    :min="0"
+                    :max="maxDisplayNumber"
+                    @change="createDisplay()"
+                  ></v-slider>
+                  <v-simple-table style="width: 100%" v-if="this.displayStorage.length != 0">
                     <thead>
                       <tr>
-                        <th>Projekttitel</th>
-                        <th>Teilnehmer</th>
-                        <th>Status</th>
-                        <th>Fortschritt</th>
+                        <th v-if="checkboxProjectName" style="font-size: 15px;">Projekttitel</th>
+                        <th
+                          v-if="checkboxProjectMembers"
+                          style="font-size: 15px; width: 50px"
+                        >Teilnehmer</th>
+                        <th v-if="checkboxProjectStatus" style="font-size: 15px; width: 10px">Status</th>
+                        <th
+                          v-if="checkboxProjectProgress"
+                          style="font-size: 15px; width: 10px"
+                        >Fortschritt</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr>
-                        <td>
+                      <tr v-for="(displayer, i) in displayStorage" :key="i">
+                        <td style="font-size: 25px" v-if="checkboxProjectName">
                           <!--Project title-->
+                          {{ displayer.project }}
                         </td>
-                        <td>
+                        <td style="font-size: 15px;" v-if="checkboxProjectMembers">
                           <!--Project members-->
                           <ul>
-                            <li></li>
+                            <li v-for="(member, j) in displayer.members" v-text="member" :key="j"></li>
                           </ul>
                         </td>
-                        <td>
-                          <!--Project status-->
-                        </td>
+                        <td
+                          v-if="checkboxProjectStatus"
+                          style="font-size: 15px;"
+                          v-bind:class="{ greenBC: displayer.status=='on track', yellowBC: displayer.status=='at risk', redBC: displayer.status=='off track', whiteBC: displayer.status==null}"
+                        >{{ displayer.status }}</td>
                         <td>
                           <!--Project progress-->
-                          <v-progress-circular></v-progress-circular>
+                          <v-progress-circular
+                            v-if="checkboxProjectProgress"
+                            color="primary"
+                            size="40"
+                            width="8"
+                            :rotate="-90"
+                            :value="displayer.progress"
+                          ></v-progress-circular>
                         </td>
                       </tr>
                     </tbody>
@@ -274,38 +312,115 @@
                 <div v-if="window == 'Studenten'">
                   <!--Students-->
                   <center>
-                    <v-btn>ICT</v-btn>
-                    <v-btn>1.LJ</v-btn>
-                    <v-btn>2.LJ</v-btn>
-                    <v-btn>3.LJ</v-btn>
+                    <v-btn v-on:click="getDBStudents(4)">ICT</v-btn>
+                    <v-btn v-on:click="getDBStudents(3)">1.LJ</v-btn>
+                    <v-btn v-on:click="getDBStudents(2)">2.LJ</v-btn>
+                    <v-btn v-on:click="getDBStudents(1)">3.LJ</v-btn>
                   </center>
-                  <v-list>
-                    <v-list-item-group>
-                      <v-list-item>
-                        <v-list-item-content>
-                          <v-list-item-title></v-list-item-title>
-                        </v-list-item-content>
-                      </v-list-item>
-                    </v-list-item-group>
-                  </v-list>
+                  <br />
+                  <div v-if="this.class!=null">
+                    <v-simple-table dense height="500px" fixed-header>
+                      <thead>
+                        <tr>
+                          <th width="50px"></th>
+                          <th width="10%">Vorname</th>
+                          <th width="90%">Nachname</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="(student, i) in this.studentsStorage" :key="i">
+                          <td>
+                            <v-btn v-on:click="deleteDBStudents(student)">X</v-btn>
+                          </td>
+                          <td>{{ student.prename }}</td>
+                          <td>{{ student.surname }}</td>
+                        </tr>
+                      </tbody>
+                    </v-simple-table>
+                    <v-row justify="center">
+                      <v-col class="d-flex" cols="12" sm="2">
+                        <v-text-field v-model="studentAdd.prename" label="Vorname"></v-text-field>
+                      </v-col>
+                      <v-col class="d-flex" cols="12" sm="2">
+                        <v-text-field v-model="studentAdd.surname" label="Nachname"></v-text-field>
+                      </v-col>
+                      <v-col class="d-flex" cols="12" sm="2">
+                        <v-btn dense v-on:click="postDBStudents()">Hinzufügen</v-btn>
+                      </v-col>
+                    </v-row>
+                  </div>
                 </div>
                 <div v-if="window == 'Stundenpläne'">
                   <!--Timetable-->
-                  <v-sheet>
-                    <v-calendar></v-calendar>
-                  </v-sheet>
                   <center>
+                    <v-btn v-on:click="getDBTimeTable(4)">ICT</v-btn>
+                    <v-btn v-on:click="getDBTimeTable(3)">1.LJ</v-btn>
+                    <v-btn v-on:click="getDBTimeTable(2)">2.LJ</v-btn>
+                    <v-btn v-on:click="getDBTimeTable(1)">3.LJ</v-btn>
+                  </center>
+                  <v-calendar
+                    v-on:click:event="deleteDBTimeTable($event)"
+                    height="200"
+                    :first-interval="7"
+                    :interval-minutes="60"
+                    :interval-count="11"
+                    ref="calendar"
+                    :value="dateCode"
+                    :events="timeTableStorage"
+                    color="primary"
+                    type="week"
+                    dense
+                    :key="componentKey"
+                  />
+                  <center v-if="this.class!= null">
                     Bitte beachten Sie, dass das Klicken eines Stundenplaneintrags zur Löschung des Stundenplaneintrags führt!
-                    <v-btn>ICT</v-btn>
-                    <v-btn>1.LJ</v-btn>
-                    <v-btn>2.LJ</v-btn>
-                    <v-btn>3.LJ</v-btn>
-                    <v-row>
-                      <v-text-field></v-text-field>
-                      <v-text-field></v-text-field>
-                      <v-select></v-select>
-                      <v-btn></v-btn>
+                    <v-row justify="center">
+                      <v-col class="d-flex" cols="12" sm="2">
+                        <v-select dense label="Tag" v-model="timeTableAdd.day" :items="dayList"></v-select>
+                      </v-col>
+                      <v-col class="d-flex" cols="12" sm="2">
+                        <v-text-field
+                          dense
+                          label="Startzeit"
+                          v-model="timeTableAdd.start"
+                          placeholder="07:40:00"
+                        ></v-text-field>
+                      </v-col>
+                      <v-col class="d-flex" cols="12" sm="2">
+                        <v-text-field
+                          dense
+                          label="Endzeit"
+                          v-model="timeTableAdd.end"
+                          placeholder=" 11:50:00"
+                        ></v-text-field>
+                      </v-col>
+                      <v-col class="d-flex" cols="12" sm="2">
+                        <v-select
+                          dense
+                          label="Fach"
+                          v-model="timeTableAdd.subject"
+                          :items="this.subjectsStorage"
+                        ></v-select>
+                      </v-col>
+                      <v-col class="d-flex" cols="12" sm="2">
+                        <v-btn dense v-on:click="postDBTimeTable()">Hinzufügen</v-btn>
+                      </v-col>
                     </v-row>
+                  </center>
+                </div>
+                <div v-if="window == 'Einstellungen'">
+                  <!--Settings-->
+                  <center>
+                    <v-btn v-on:click="window='Studenten'">Klassenliste bearbeiten</v-btn>
+                    <v-btn v-on:click="window='Stundenpläne'">Stundenplan bearbeiten</v-btn>
+                  </center>
+                </div>
+                <div v-if="window == 'Login'">
+                  <!--Login-->
+                  <center>
+                    <v-text-field label="Benutzer" v-model="loginUsername"></v-text-field>
+                    <v-text-field label="Passwort" v-model="loginPassword" :type="'password'"></v-text-field>
+                    <v-btn v-on:click="logTeacherIn()">Login</v-btn>
                   </center>
                 </div>
               </v-card-text>
@@ -337,6 +452,7 @@ export default {
   name: "App",
   data() {
     return {
+      //Interface data
       dialog: false,
       drawer: false,
       items: [
@@ -345,21 +461,30 @@ export default {
         { icon: "mdi-school", text: "LOH" },
         { icon: "mdi-settings", text: "Einstellungen" }
       ],
-
       rotation: [],
       displayNumber: 0,
-      maxDisplayNumber: 6,
-
+      maxDisplayNumber: 1,
       loginUsername: "",
       loginPassword: "",
+      window: null,
+      class: null,
+      extendedDisplay: false,
+      date: "",
+      dateCode: "",
+      time: "",
+      room: null,
+      checkboxProjectName: true,
+      checkboxProjectMembers: true,
+      checkboxProjectStatus: true,
+      checkboxProjectProgress: true,
 
+      //Objects to add new entries
       timeTableAdd: {
         day: null,
         start: null,
         end: null,
         subject: null
       },
-
       studentAdd: {
         surname: null,
         prename: null
@@ -373,12 +498,12 @@ export default {
       displayStorage: [],
 
       //OpenProject Login
-      ip: "172.30.254.79",
+      ip: "10.163.20.240",
       username: "apikey",
       password:
         "c924b153e11ec721010f5d3a81a6cb304ff5d25ed0820a753539298b772aa803",
 
-      //Raw Data
+      //Raw Data from OpenProject
       projects: [],
       memberships: [],
       progress: [],
@@ -394,27 +519,20 @@ export default {
         "Samstag"
       ],
 
-      //Interface data
-      window: "",
-      class: null,
-      extendedDisplay: false,
-      date: "",
-      dateCode: "",
-      time: "",
-      room: null,
-
       //componentKey forces Vue to update the DOM of the tagged element
       componentKey: 0,
 
       //Intervals
       timeIntervalID: 0,
-      dateIntervalID: 0
+      dateIntervalID: 0,
+      rotationIntervalID: 0
     };
   },
+  //everything here gets executed as soon as the application starts
   async created() {
-    await this.createTime();
-    await this.createDate();
-    await this.getDBSubjects();
+    await this.createTime(); //Create time data
+    await this.createDate(); //Create date data
+    await this.getDBSubjects(); //Create subject list data
   },
   methods: {
     //Fill the time variable with the current time
@@ -466,8 +584,13 @@ export default {
       );
     },
 
-    //changes window on click
+    //changes window on click and empties Storages etc. on change.
     clickChangeWindow(selection) {
+      this.displayStorage = [];
+      this.projectsStorage = [];
+      this.studentsStorage = [];
+      this.class = null;
+      this.displayNumber = 0;
       switch (selection) {
         case "LOA 903":
         case "LOA 002":
@@ -495,10 +618,11 @@ export default {
       }
       this.getDBTimeTableDay();
       this.createProjects();
+      this.createDisplay();
       this.window = "Projekte";
     },
 
-    //gets the time table of the day
+    //gets the time tables of the day
     async getDBTimeTableDay() {
       var tempDay = new Date();
       let tempTimeTableDayGetter = await axios.get(
@@ -508,7 +632,7 @@ export default {
       this.adjustDBTimeTableDay(tempTimeTableDayGetter);
     },
 
-    //filters and adjust the timetable of the day
+    //filters and adjusts the timetable of the day on workshop lessons and room
     adjustDBTimeTableDay(tempTimeTableDayGetter) {
       let tempTimeTableDay = [];
       for (var i = 0; i < tempTimeTableDayGetter.length; i++) {
@@ -527,14 +651,19 @@ export default {
       this.compareDBTimeTableDay(tempTimeTableDay);
     },
 
-    //Defines a class when the class has workshop lessons
+    //Defines a class when the class has workshop lessons -> Time based
     compareDBTimeTableDay(tempTimeTableDay) {
       let currentHour = this.time.slice(0, 2);
       for (var i = 0; i < tempTimeTableDay.length; i++) {
         let tempStartWorkshopHour = tempTimeTableDay[i].start.slice(0, 2);
         let tempEndWorkshopHour = tempTimeTableDay[i].end.slice(0, 2);
-        if (tempStartWorkshopHour <= currentHour <= tempEndWorkshopHour) {
+        if (
+          parseInt(tempStartWorkshopHour) <= parseInt(currentHour) &&
+          parseInt(currentHour) <= parseInt(tempEndWorkshopHour)
+        ) {
           this.class = tempTimeTableDay[0].class;
+        } else {
+          this.class = null;
         }
       }
     },
@@ -588,30 +717,38 @@ export default {
       this.componentKey += 1;
     },
 
+    //Calculate the date
     calculateOtherDate(i) {
       var tempCurrentDay = new Date();
       var tempDayDifference =
         this.timeTableStorage[i].day - tempCurrentDay.getDay();
       tempCurrentDay.setDate(tempCurrentDay.getDate() + tempDayDifference);
       var tempDay, tempMonth;
+      //in case the monthnumber is lower than 10, months like march are defined as 04 instead of 4. Adjusting to the fact that getMonth() starts with 0.
       if (tempCurrentDay.getMonth() < 10) {
         tempMonth = "0" + (tempCurrentDay.getMonth() + 1);
       } else {
         tempMonth = tempCurrentDay.getMonth() + 1;
       }
+      //in case the date is lower than 10, days like the 4th are defined as 04 instead of 4
       if (tempCurrentDay.getDate() < 10) {
-        tempDay = "0" + (tempCurrentDay.getDay() + 1);
+        tempDay = "0" + tempCurrentDay.getDate();
+      } else {
+        tempDay = tempCurrentDay.getDate();
       }
+      //construct date
       var tempOtherDay =
         tempCurrentDay.getFullYear() + "-" + tempMonth + "-" + tempDay;
       return tempOtherDay;
     },
+
     //Removes one entry of the timetable
     async deleteDBTimeTable(tempTimeTableEntry) {
       var tempEvent = tempTimeTableEntry;
       await axios.delete(`/api/timetables/${tempEvent.event.id}`);
       await this.getDBTimeTable(this.class);
     },
+
     //Posts an entry into the timetable
     async postDBTimeTable() {
       if (
@@ -625,6 +762,8 @@ export default {
         await this.getDBTimeTable(this.class);
       }
     },
+
+    //Creates an object and adjust the given data before sending it to the DB
     adjustPostTimeTable() {
       let tempPostTimeTable = {
         day: null,
@@ -651,6 +790,7 @@ export default {
       };
       return tempPostTimeTable;
     },
+
     //Gets students from MySQL DB
     async getDBStudents(tempClass) {
       let tempStudentsStorage = await axios.get(`/api/students/${tempClass}`);
@@ -676,14 +816,13 @@ export default {
     },
 
     //--------------------------------------------------
-    //testing
+    //Order to get the projects to the display
     async createProjects() {
       await this.getOPProjects();
       await this.getOPMemberships();
       await this.adjustOPProjectProgress();
       await this.adjustOPMemberships();
       await this.adjustOPProjects();
-      await this.createDisplay();
     },
 
     //Gets projects from OpenProject API
@@ -801,12 +940,16 @@ export default {
     },
 
     //Creates the display from the project storage
-    createDisplay() {
+    async createDisplay() {
+      clearInterval(this.rotationIntervalID);
+      this.createProjects();
       if (this.class != null) {
-        this.getDBStudents(this.class);
+        await this.getDBStudents(this.class);
         var tempProjectsInClass = [];
         for (var i = 0; i < this.projectsStorage.length; i++) {
-          var tempKeep = this.compareMembersToClass(this.projectsStorage[i]);
+          var tempKeep = await this.compareMembersToClass(
+            this.projectsStorage[i]
+          );
           if (tempKeep) {
             tempProjectsInClass.push(this.projectsStorage[i]);
           }
@@ -830,6 +973,14 @@ export default {
         var tempRotation = this.rotation[0];
         this.rotation.shift();
         this.rotation.push(tempRotation);
+      }
+      if (this.window == "Projekte") {
+        this.rotationIntervalID = setInterval(
+          function() {
+            this.createDisplay();
+          }.bind(this),
+          3000
+        );
       }
     },
 
@@ -860,10 +1011,10 @@ export default {
       this.hashInput();
     },
 
-    hashInput() {
+    async hashInput() {
       let tempUsername = this.hashString(this.loginUsername);
       let tempPassword = this.hashString(this.loginPassword);
-      let access = this.compareDBLogin(tempUsername, tempPassword);
+      let access = await this.compareDBLogin(tempUsername, tempPassword);
       if (access) {
         this.window = "Einstellungen";
       }

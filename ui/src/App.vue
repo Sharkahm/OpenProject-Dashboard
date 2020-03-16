@@ -230,7 +230,7 @@
                   <center>
                     <v-text-field label="Benutzer" v-model="loginUsername"></v-text-field>
                     <v-text-field label="Passwort" v-model="loginPassword" :type="'password'"></v-text-field>
-                    <v-btn v-on:click="logTeacherIn()">Login</v-btn>
+                    <v-btn v-on:click="clickLogin()">Login</v-btn>
                   </center>
                 </div>
               </v-card-text>
@@ -498,7 +498,7 @@ export default {
       displayStorage: [],
 
       //OpenProject Login
-      ip: "10.163.20.240",
+      ip: "192.168.60.55",
       username: "apikey",
       password:
         "c924b153e11ec721010f5d3a81a6cb304ff5d25ed0820a753539298b772aa803",
@@ -525,7 +525,8 @@ export default {
       //Intervals
       timeIntervalID: 0,
       dateIntervalID: 0,
-      rotationIntervalID: 0
+      rotationIntervalID: 0,
+      loadProjectsIntervalID: 0
     };
   },
   //everything here gets executed as soon as the application starts
@@ -595,6 +596,7 @@ export default {
         case "LOA 903":
         case "LOA 002":
         case "LOH":
+          this.window = "Projekte";
           this.createProjectsWindow(selection);
           break;
         case "Einstellungen":
@@ -604,22 +606,22 @@ export default {
     },
 
     //Defining room by asigning a number
-    createProjectsWindow(selection) {
-      switch (selection) {
-        case "LOA 903":
-          this.room = 1;
-          break;
-        case "LOA 002":
-          this.room = 2;
-          break;
-        case "LOH":
-          this.room = 3;
-          break;
+    async createProjectsWindow(selection) {
+      if (this.window == "Projekte") {
+        switch (selection) {
+          case "LOA 903":
+            this.room = 1;
+            break;
+          case "LOA 002":
+            this.room = 2;
+            break;
+          case "LOH":
+            this.room = 3;
+            break;
+        }
+        await this.getDBTimeTableDay();
+        await this.createProjects();
       }
-      this.getDBTimeTableDay();
-      this.createProjects();
-      this.createDisplay();
-      this.window = "Projekte";
     },
 
     //gets the time tables of the day
@@ -818,11 +820,16 @@ export default {
     //--------------------------------------------------
     //Order to get the projects to the display
     async createProjects() {
-      await this.getOPProjects();
-      await this.getOPMemberships();
-      await this.adjustOPProjectProgress();
-      await this.adjustOPMemberships();
-      await this.adjustOPProjects();
+      if (this.class != null) {
+        await this.getOPProjects();
+        await this.getOPMemberships();
+        await this.adjustOPProjectProgress();
+        await this.adjustOPMemberships();
+        await this.adjustOPProjects();
+        await this.createDisplay();
+      } else {
+        alert("Zurzeit hat es im Raum kein Werkstattunterricht!");
+      }
     },
 
     //Gets projects from OpenProject API
@@ -942,7 +949,6 @@ export default {
     //Creates the display from the project storage
     async createDisplay() {
       clearInterval(this.rotationIntervalID);
-      this.createProjects();
       if (this.class != null) {
         await this.getDBStudents(this.class);
         var tempProjectsInClass = [];
@@ -979,11 +985,12 @@ export default {
           function() {
             this.createDisplay();
           }.bind(this),
-          3000
+          30000
         );
       }
     },
 
+    //returns true or false whether the project has members of the selected class.
     compareMembersToClass(currentProject) {
       var tempKeep = false;
       for (var i = 0; i < this.studentsStorage.length; i++) {
@@ -1001,16 +1008,20 @@ export default {
       return tempKeep;
     },
 
+    //creates an array that aids the rotation
     createRotationArray(length) {
       this.rotation = [];
       for (var i = 0; i < length; i++) {
         this.rotation.push(i);
       }
     },
-    logTeacherIn() {
+
+    //login forwards to the hashing process
+    clickLogin() {
       this.hashInput();
     },
 
+    //preparing strings, sending it to the compare and evaluates whether the user can access the settings or not
     async hashInput() {
       let tempUsername = this.hashString(this.loginUsername);
       let tempPassword = this.hashString(this.loginPassword);
@@ -1020,6 +1031,7 @@ export default {
       }
     },
 
+    //hashing strings
     hashString(str) {
       let hash = 0;
       for (let i = 0; i < str.length; i++) {
@@ -1029,6 +1041,7 @@ export default {
       return hash;
     },
 
+    //gets the logins and checks if any entry is identical to what has been given and hashed
     async compareDBLogin(tempUsername, tempPassword) {
       let tempLoginGetter = await axios.get(`/api/login`);
       tempLoginGetter = tempLoginGetter.data;
@@ -1044,6 +1057,7 @@ export default {
     }
   },
 
+  //closing the application turns these intervals off.
   beforeDestroy() {
     clearInterval(this.dataUpdaterIntervalID);
     clearInterval(this.timeUpdaterIntervalID);

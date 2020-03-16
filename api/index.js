@@ -6,6 +6,7 @@ app.get('/api', (req, res) => {
     res.send('Willkommen im OpenProject Dashboard-API')
 })
 //Students
+//Get Students
 app.get('/api/students/:class', async (req, res) => {
     let results = await knex('students')
         .where('classes_id', req.params.class)
@@ -15,6 +16,7 @@ app.get('/api/students/:class', async (req, res) => {
     console.log("get students")
 })
 
+//Delete Students
 app.delete('/api/students/:studentid', async (req, res) => {
     let results = await knex('students')
         .where('idstudents', req.params.studentid)
@@ -23,6 +25,7 @@ app.delete('/api/students/:studentid', async (req, res) => {
     console.log("delete a student")
 })
 
+//Post Students
 app.post('/api/students', async (req, res) => {
     let results = await knex('students')
         .insert({
@@ -35,6 +38,7 @@ app.post('/api/students', async (req, res) => {
 })
 
 //Classes
+//Get classes
 app.get('/api/classes', async (req, res) => {
     let results = await knex('classes')
         .select('*')
@@ -43,6 +47,7 @@ app.get('/api/classes', async (req, res) => {
 })
 
 //Rooms
+//Get rooms
 app.get('/api/rooms', async (req, res) => {
     let results = await knex('rooms')
         .select('*')
@@ -51,6 +56,7 @@ app.get('/api/rooms', async (req, res) => {
 })
 
 //Subjects
+//Get subjects
 app.get('/api/subjects', async (req, res) => {
     let results = await knex('subjects')
         .select('*')
@@ -59,6 +65,7 @@ app.get('/api/subjects', async (req, res) => {
 })
 
 //Timetables
+//Get timetables by class
 app.get('/api/timetables/:class', async (req, res) => {
     let results = await knex('timetables')
         .where('classes_id', req.params.class)
@@ -69,6 +76,7 @@ app.get('/api/timetables/:class', async (req, res) => {
     console.log("get timetable by class")
 })
 
+//Get timetables by day
 app.get('/api/timetables/day/:day', async (req, res) => {
     let results = await knex('timetables')
         .where('day', req.params.day)
@@ -80,6 +88,7 @@ app.get('/api/timetables/day/:day', async (req, res) => {
     console.log("get timetable - day" + JSON.stringify(req.body))
 })
 
+//Delete timetable entry
 app.delete('/api/timetables/:id', async (req, res) => {
     let results = await knex('timetables')
         .where('idtimetable', req.params.id)
@@ -88,6 +97,7 @@ app.delete('/api/timetables/:id', async (req, res) => {
     console.log("delete entry in timetable")
 })
 
+//Post timetable entry
 app.post('/api/timetables', async (req, res) => {
     let results = await knex('timetables')
         .insert({
@@ -100,7 +110,9 @@ app.post('/api/timetables', async (req, res) => {
     res.json(results)
     console.log("post entry into timetable")
 })
+
 //Login
+//Get logins
 app.get('/api/login', async (req, res) => {
     let results = await knex('login')
         .select('*')
@@ -108,5 +120,5 @@ app.get('/api/login', async (req, res) => {
     console.log("get login")
 })
 
-
+//API tester
 app.listen(3000, () => console.log("Listening on port 3000"))

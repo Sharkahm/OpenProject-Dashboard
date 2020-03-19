@@ -526,6 +526,7 @@ export default {
       timeIntervalID: 0,
       dateIntervalID: 0,
       rotationIntervalID: 0,
+      projectUpdateInterval: 0,
       loadProjectsIntervalID: 0
     };
   },
@@ -607,6 +608,8 @@ export default {
 
     //Defining room by asigning a number
     async createProjectsWindow(selection) {
+      clearInterval(this.projectUpdateInterval);
+      clearInterval(this.rotationIntervalID);
       if (this.window == "Projekte") {
         switch (selection) {
           case "LOA 903":
@@ -621,6 +624,7 @@ export default {
         }
         await this.getDBTimeTableDay();
         await this.createProjects();
+        await this.createDisplay();
       }
     },
 
@@ -826,9 +830,16 @@ export default {
         await this.adjustOPProjectProgress();
         await this.adjustOPMemberships();
         await this.adjustOPProjects();
-        await this.createDisplay();
       } else {
         alert("Zurzeit hat es im Raum kein Werkstattunterricht!");
+      }
+      if (this.window == "Projekte") {
+        this.projectUpdateInterval = setInterval(
+          function() {
+            this.createProjects();
+          }.bind(this),
+          30000
+        );
       }
     },
 
@@ -862,16 +873,20 @@ export default {
 
     //Gets the progress of the project by ID (i)
     async getOPProjectProgress(i) {
-      let tempgetOPProjectProgress = await axios.get(
-        `http://${this.ip}/openproject/api/v3/projects/${i}/queries/default?filters=[{"status":{"operator":"*","values":[]}}]`,
-        {
-          auth: {
-            username: this.username,
-            password: this.password
+      try {
+        let tempgetOPProjectProgress = await axios.get(
+          `http://${this.ip}/openproject/api/v3/projects/${i}/queries/default?filters=[{"status":{"operator":"*","values":[]}}]`,
+          {
+            auth: {
+              username: this.username,
+              password: this.password
+            }
           }
-        }
-      );
-      return tempgetOPProjectProgress.data._embedded;
+        );
+        return tempgetOPProjectProgress.data._embedded;
+      } catch {
+        return "error";
+      }
     },
 
     //adjusting Projects import from OpenProject for the projects storage
@@ -903,10 +918,17 @@ export default {
     adjustOPMemberships() {
       var tempMemberships = [];
       for (var i = 0; i < this.memberships.length; i++) {
-        var tempMembershipsObject = {
-          member: this.memberships[i]._links.self.title,
-          project: this.memberships[i]._links.project.title
-        };
+        try {
+          var tempMembershipsObject = {
+            member: this.memberships[i]._links.self.title,
+            project: this.memberships[i]._links.project.title
+          };
+        } catch {
+          tempMembershipsObject = {
+            member: this.memberships[i].member,
+            project: this.memberships[i].project
+          };
+        }
         tempMemberships.push(tempMembershipsObject);
       }
       this.memberships = tempMemberships;
@@ -916,7 +938,10 @@ export default {
     async adjustOPProjectProgress() {
       var tempProgress = [];
       for (var i = 1; i <= this.projects.length; i++) {
-        let tempProgressObjectGetter = await this.getOPProjectProgress(i);
+        var tempProgressObjectGetter = await this.getOPProjectProgress(i);
+        if (tempProgressObjectGetter == "error") {
+          continue;
+        }
         var tempProgressSum = 0;
         if (
           tempProgressObjectGetter.results.total >
